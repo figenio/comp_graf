@@ -289,7 +289,7 @@ def main():
     glut.glutInit()
     glut.glutInitContextVersion(3, 3)
     glut.glutInitContextProfile(glut.GLUT_CORE_PROFILE)
-    glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGBA)
+    glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGBA | glut.GLUT_DEPTH)
     glut.glutInitWindowSize(win_width,win_height)
     glut.glutCreateWindow('Cube')
 
