@@ -96,7 +96,7 @@ def special_keyboard(key, x_mouse, y_mouse):
 
 def keyboard(key, x_mouse, y_mouse):
     
-    global type_primitive, line, mode
+    global line, mode
     
     if key == b't':
         mode = 'translate'
@@ -293,6 +293,9 @@ def read_obj(file_name):
     data['f_vt'] = np.asarray(vt_list, dtype='uint32')
     data['f_vn'] = np.asarray(vn_list, dtype='uint32')
 
+    print("Vlist:", vertices)
+    print("Flist:", v_list)
+    print("Número:", count_vertices)
     return data
 
 
