@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import sys
 import ctypes
 import numpy as np
