@@ -279,7 +279,7 @@ def read_obj(file_name):
                 vn = el.split('/')[2]
             
                 if v:
-                    v_list.append(int(v) - 1)
+                    v_list.append(int(v))
                 if vt:
                     vt_list.append(int(vt))
                 if vn:
