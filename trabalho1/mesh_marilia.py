@@ -293,9 +293,6 @@ def read_obj(file_name):
     data['f_vt'] = np.asarray(vt_list, dtype='uint32')
     data['f_vn'] = np.asarray(vn_list, dtype='uint32')
 
-    print("Vlist:", vertices)
-    print("Flist:", v_list)
-    print("Número:", count_vertices)
     return data
 
 
@@ -307,6 +304,9 @@ def initData():
 
     vertices = data['v']
     indices = data['f_v']
+    print("Vlist:", vertices.dtype)
+    print("Flist:", indices.dtype)
+    print("Número:", count_vertices)
 
     # Vertex array.
     VAO = gl.glGenVertexArrays(1)

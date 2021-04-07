@@ -90,8 +90,8 @@ def display():
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, view.transpose())
 
     # Aplicação da projeção
-    #projection = ut.matPerspective(fovy, win_width/win_height, 0.1, 150)
-    projection = ut.matOrtho(-2, 2, -4, 4, 0.1, 10)
+    projection = ut.matPerspective(fovy, win_width/win_height, 0.1, 150)
+    #projection = ut.matOrtho(-2, 2, -4, 4, 0.1, 10)
     loc = gl.glGetUniformLocation(program, "projection")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, projection.transpose())
 
@@ -233,6 +233,8 @@ def load_obj():
     global num_element_vertices
     global range_y
 
+    faces_list = list()
+
     # For que itera nas linha do arquivo
     for line in obj_file:
         # Caso a linha descreva um vértice
@@ -251,13 +253,14 @@ def load_obj():
                     # v_normal = v.split('/')[2]
             
                     if v_index:
-                        faces = np.append(faces, int(v_index)-1)
+                        faces = faces_list.append(int(v_index)-1)
                     # if vt:
                     #     np.append(int(vt))
                     # if v_normal:
                     #     np.append(int(vn))
-                else: faces = np.append(faces, np.asarray(f_values, dtype='uint32'))
+                else: faces_list.append(int(v)-1)
 
+    faces = np.asarray(faces_list, dtype='uint32')
     num_element_vertices = len(faces)
 
     max_v = np.max(vertices)
