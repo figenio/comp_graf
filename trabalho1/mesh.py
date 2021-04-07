@@ -21,7 +21,7 @@ win_height = 600
 ## Modo de exibição 
 mode = False    # (False, Faces) (True, Arestas)
 ## Modo de operção
-operation = '' # (1, Neutro) (2, Translação) (3, Escala) (4, Rotação)
+operation = ''
 ## Array de vertices
 vertices = np.array([], dtype='float32')
 ## Array de faces
@@ -90,8 +90,8 @@ def display():
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, view.transpose())
 
     # Aplicação da projeção
-    projection = ut.matPerspective(fovy, win_width/win_height, 0.1, 150)
-    #projection = ut.matOrtho(-1, 1, -2, 2, 0.1, 10)
+    #projection = ut.matPerspective(fovy, win_width/win_height, 0.1, 150)
+    projection = ut.matOrtho(-2, 2, -4, 4, 0.1, 10)
     loc = gl.glGetUniformLocation(program, "projection")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, projection.transpose())
 
@@ -150,7 +150,6 @@ def keyboard(key, x, y):
 
 def handle_operation(key):
     global operation
-    print("operation")
 
     if operation == 'translate':
         if key == glut.GLUT_KEY_UP:
@@ -237,62 +236,33 @@ def load_obj():
     # For que itera nas linha do arquivo
     for line in obj_file:
         # Caso a linha descreva um vértice
-        # print("Line:", line)
         if line[:2] == "v ":
-            v1_index = line.find(" ") + 1 # a posição do primeiro vértice
-            v2_index = line.find(" ", v1_index) + 1 # a posição do próximo vértice a partir da última conhecida
-            v3_index = line.find(" ", v2_index) + 1
-
-            # Lê e converte os valores do arquivo para float
-            vertice = np.array([float(line[v1_index:(v2_index-1)]),
-                        float(line[v2_index:(v3_index-1)]),
-                        float(line[v3_index:-1])],
-                        dtype='float32')
-            
-            # Adiciona o novo vértice ao array de vértices
-            vertices = np.append(vertices, vertice)
+            v_values = line[1:].split()
+            vertices = np.append(vertices, np.asarray(v_values, dtype='float32'))
 
         # Caso a linha descreva uma face
         elif line[:2] == 'f ':
-            # Encontra a posição dos valores dos vértica de uma face
-            f1_index = line.find(" ") + 1
-            f2_index = line.find(" ", f1_index + 1)
-            f3_index = line.find(" ", f2_index + 1)
+            f_values = line[1:].split()
 
-            # Separa a string com os valores de cada vértice que compões a face
-            f1_values = line[f1_index:(f2_index)]
-            f2_values = line[f2_index:(f3_index)]
-            f3_values = line[f3_index:-1]
-
-            # Separa os valores de vértice, cor e normal que compões a face
-            f1_vertice = f1_values.split('/')[0]
-            # f1_color = f1_values.split('/')[1]
-            # f1_normal = f1_values.split('/')[2]
-            # print("Vertice:", f1_vertice)
+            for v in f_values:
+                if '/' in v:
+                    v_index  = v.split('/')[0]
+                    # v_color  = v.split('/')[1]
+                    # v_normal = v.split('/')[2]
             
-            f2_vertice = f2_values.split('/')[0]
-            # f2_color = f2_values.split('/')[1]
-            # f2_normal = f2_values.split('/')[2]
-            # print("Vertice:", f2_vertice)
-
-            f3_vertice = f3_values.split('/')[0]
-            # f3_color = f3_values.split('/')[1]
-            # f3_normal = f3_values.split('/')[2]
-            # print("Vertice:", f3_vertice)
-
-            nova_face = np.array([int(f1_vertice)-1,
-                int(f2_vertice)-1,
-                int(f3_vertice)-1],
-                dtype='uint32')
-
-            faces = np.append(faces, nova_face)
+                    if v_index:
+                        faces = np.append(faces, int(v_index)-1)
+                    # if vt:
+                    #     np.append(int(vt))
+                    # if v_normal:
+                    #     np.append(int(vn))
+                else: faces = np.append(faces, np.asarray(f_values, dtype='uint32'))
 
     num_element_vertices = len(faces)
 
     max_v = np.max(vertices)
     min_v = np.min(vertices)
     range_y = max_v - min_v
-
 
     print("Vertices:\n", vertices)
     print("Faces:\n", faces)
@@ -337,7 +307,6 @@ def initData():
 
 
 def initShaders():
-
     global program
     program = ut.createShaderProgram(vertex_code, fragment_code)
 
@@ -363,3 +332,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # load_obj()
