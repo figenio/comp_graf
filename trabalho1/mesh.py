@@ -233,25 +233,28 @@ def load_obj():
     global num_element_vertices
     global range_y
 
-    faces_list = list()
+    faces_list = list() # Lista temporária para salvar as faces
 
     # For que itera nas linha do arquivo
     for line in obj_file:
         # Caso a linha descreva um vértice
         if line[:2] == "v ":
+            # Cada coordenada de vértice é separada e adicionada ao array de vértices
             v_values = line[1:].split()
             vertices = np.append(vertices, np.asarray(v_values, dtype='float32'))
 
         # Caso a linha descreva uma face
         elif line[:2] == 'f ':
+            # Cada valor de face é separado
             f_values = line[1:].split()
 
             for v in f_values:
-                if '/' in v:
-                    v_index  = v.split('/')[0]
+                if '/' in v: # Caso hajam mais valores do que apenas o índice da coordenada
+                    v_index  = v.split('/')[0] # Separamos o valor da coordenada
                     # v_color  = v.split('/')[1]
                     # v_normal = v.split('/')[2]
             
+                    # Atribuimos o valor da coordenada da face à lista de faces
                     if v_index:
                         faces = faces_list.append(int(v_index)-1)
                     # if vt:
@@ -260,7 +263,9 @@ def load_obj():
                     #     np.append(int(vn))
                 else: faces_list.append(int(v)-1)
 
+    # Atribuímos a lista de faces para o array no formato int
     faces = np.asarray(faces_list, dtype='uint32')
+
     num_element_vertices = len(faces)
 
     max_v = np.max(vertices)
