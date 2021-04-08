@@ -34,7 +34,15 @@ M = np.identity(4, dtype='float32')
 fovy = np.radians(60)
 ## Intervalor do y
 range_y = 0
-
+## Coordenadas do centro do objeto
+obj_center = [0, 0, 0]
+## Coordenadas máximas e mínimas do objeto em cada eixo
+x_min = sys.float_info.max
+y_min = sys.float_info.max
+z_min = sys.float_info.max
+x_max = sys.float_info.min
+y_max = sys.float_info.min
+z_max = sys.float_info.min
 
 ## Variável do programa
 program = None
@@ -75,23 +83,29 @@ def display():
     gl.glClearColor(0.2, 0.3, 0.3, 1.0)
     gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
+    gl.glBindVertexArray(VAO)
     gl.glUseProgram(program)
 
-    gl.glBindVertexArray(VAO)
-
-    # Aplicação das transformações
+    # Atribuição da matris de transformações
+    print("Matriz de transforamação:\n", M)
     loc = gl.glGetUniformLocation(program, "transform")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, M.transpose())
 
-    # Definição da visão
-    z_near = range_y/np.tan(fovy)
-    view = ut.matTranslate(0.0, 0.0, -z_near-1)
+
+    # View
+    # z_near = z_min + (y_max-y_min)/np.tan(fovy)
+    z_near = (y_max-y_min)*4.0/np.tan(fovy)
+    print(z_near)
+
+    view = ut.matTranslate(0.0, 0.0, z_near)
+    # view = ut.matTranslate(0.0, 0.0, z_near-1)
+
     loc = gl.glGetUniformLocation(program, "view")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, view.transpose())
 
-    # Aplicação da projeção
-    projection = ut.matPerspective(fovy, win_width/win_height, 0.1, 150)
-    #projection = ut.matOrtho(-2, 2, -4, 4, 0.1, 10)
+    # Projection
+    # projection = ut.matOrtho(x_min*1.5, x_max*1.5, y_min*1.5, y_max*1.5, 0.1, 500)
+    projection = ut.matPerspective(fovy, win_width/win_height, 0.1, 300)
     loc = gl.glGetUniformLocation(program, "projection")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, projection.transpose())
 
@@ -150,23 +164,24 @@ def keyboard(key, x, y):
 
 def handle_operation(key):
     global operation
+    unit = 0.01*max(x_max, y_max, z_max)
 
     if operation == 'translate':
         if key == glut.GLUT_KEY_UP:
-            translate(0.0, 0.05, 0.0)
+            translate(0.0, unit, 0.0)
         elif key == glut.GLUT_KEY_DOWN:
-            translate(0.0, -0.05, 0.0)
+            translate(0.0, -unit, 0.0)
         elif key == glut.GLUT_KEY_RIGHT:
-            translate(0.05, 0.0, 0.0)
+            translate(unit, 0.0, 0.0)
         elif key == glut.GLUT_KEY_LEFT:
-            translate(-0.05, 0.0, 0.0)
+            translate(-unit, 0.0, 0.0)
         elif key == b'a':
-            translate(0.0, 0.0, 0.5)
+            translate(0.0, 0.0, unit)
         elif key == b'd':
-            translate(0.0, 0.0, -0.5)
+            translate(0.0, 0.0, -unit)
 
     elif operation == 'rotate':
-        angle = 10.0
+        angle = 1.0
         if key == glut.GLUT_KEY_UP:
             rotate('x', angle)
         elif key == glut.GLUT_KEY_DOWN:
@@ -181,7 +196,7 @@ def handle_operation(key):
             rotate('z', -angle)
     
     elif operation == 'scale':
-        coeff=0.05
+        coeff=0.01
 
         if key == glut.GLUT_KEY_UP:
             scale(1, 1+coeff, 1)
@@ -199,19 +214,30 @@ def handle_operation(key):
     glut.glutPostRedisplay()
 
 def translate(x, y, z):
-    global M
+    global M, obj_center
     T = ut.matTranslate(x, y, z)
     M = np.matmul(T,M)
+
+    obj_center[0] += x
+    obj_center[1] += y
+    obj_center[2] += z
 
 
 def scale(x, y, z):
     global M
+    x_center, y_center, z_center = obj_center[0], obj_center[1], obj_center[2]
+
+    translate(-x_center, -y_center, -z_center)
     S = ut.matScale(x, y, z)
     M = np.matmul(S,M)
+    translate( x_center, y_center, z_center)
 
 
 def rotate(axis, angle=10.0):
     global M
+    x, y, z = obj_center[0], obj_center[1], obj_center[2]
+
+    translate(-x, -y, -z)
 
     if axis == 'x':
         R = ut.matRotateX(np.radians(angle))
@@ -221,6 +247,8 @@ def rotate(axis, angle=10.0):
         R = ut.matRotateZ(np.radians(angle))
 
     M = np.matmul(R,M)
+
+    translate(x, y, z)
 
 
 def load_obj():
@@ -232,6 +260,15 @@ def load_obj():
     global faces
     global num_element_vertices
     global range_y
+    global obj_center
+
+    # Limites máximos do objeto
+    global x_min
+    global y_min
+    global z_min
+    global x_max
+    global y_max
+    global z_max
 
     faces_list = list() # Lista temporária para salvar as faces
 
@@ -242,6 +279,21 @@ def load_obj():
             # Cada coordenada de vértice é separada e adicionada ao array de vértices
             v_values = line[1:].split()
             vertices = np.append(vertices, np.asarray(v_values, dtype='float32'))
+
+            # Validamos se algumas das coordenadas é um ponto mais extremo do objeto
+            if float(v_values[0]) > x_max:
+                x_max = float(v_values[0])
+            if float(v_values[0]) < x_min:
+                x_min = float(v_values[0])
+            if float(v_values[1]) > y_max:
+                y_max = float(v_values[1])
+            if float(v_values[1]) < y_min:
+                y_min = float(v_values[1])
+            if float(v_values[2]) > z_max:
+                z_max = float(v_values[2])
+            if float(v_values[2]) < z_min:
+                z_min = float(v_values[2])
+
 
         # Caso a linha descreva uma face
         elif line[:2] == 'f ':
@@ -266,15 +318,24 @@ def load_obj():
     # Atribuímos a lista de faces para o array no formato int
     faces = np.asarray(faces_list, dtype='uint32')
 
+    v_max = np.max(vertices)
+    vertices = vertices/v_max
+    x_min = x_min/v_max
+    y_min = y_min/v_max
+    z_min = z_min/v_max
+    x_max = x_max/v_max
+    y_max = y_max/v_max
+    z_max = z_max/v_max
+
+    # As coordenadas de centro recebem o ponto médio dos mínimos e máximos do objeto em cada eixo
+    obj_center = [(x_max-x_min)/2, (y_max-y_min)/2, (z_max-z_min)/2]
+
     num_element_vertices = len(faces)
 
-    max_v = np.max(vertices)
-    min_v = np.min(vertices)
-    range_y = max_v - min_v
-
-    print("Vertices:\n", vertices)
-    print("Faces:\n", faces)
-    print("Número de vértices", num_element_vertices)
+    # print("Vertices:\n", vertices)
+    # print("Faces:\n", faces)
+    # print("Número de vértices", num_element_vertices)
+    print("Coordenadas do centro do objeto", obj_center)
 
 
 
@@ -283,9 +344,19 @@ def initData():
     global VAO
     global vertices
     global faces
+    global obj_center
+    global M
     
     # Chama o método que vai ler o arquivo de entrada
     load_obj()
+    
+    # Primeira translação para levar o centro do objeto para a origem dos eixos
+    T = ut.matTranslate(-obj_center[0], -obj_center[1], -obj_center[2])
+    M = np.matmul(T,M)
+
+    obj_center[0] -= obj_center[0]
+    obj_center[1] -= obj_center[1]
+    obj_center[2] -= obj_center[2]
 
 
     # Vertex array.
@@ -339,5 +410,8 @@ def main():
     glut.glutMainLoop()
 
 if __name__ == '__main__':
-    main()
-    # load_obj()
+    obj_name = sys.argv[1]
+    if '.obj' in obj_name:
+        main()
+        # load_obj()
+    else: print("Not a .obj file")
