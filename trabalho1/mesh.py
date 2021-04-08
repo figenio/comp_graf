@@ -32,8 +32,6 @@ num_element_vertices = 0
 M = np.identity(4, dtype='float32')
 ## Abertura de FOVY
 fovy = np.radians(60)
-## Intervalor do y
-range_y = 0
 ## Coordenadas do centro do objeto
 obj_center = [0, 0, 0]
 ## Coordenadas máximas e mínimas do objeto em cada eixo
@@ -259,7 +257,6 @@ def load_obj():
     global vertices
     global faces
     global num_element_vertices
-    global range_y
     global obj_center
 
     # Limites máximos do objeto
@@ -270,7 +267,8 @@ def load_obj():
     global y_max
     global z_max
 
-    faces_list = list() # Lista temporária para salvar as faces
+    # Lista temporária para salvar as faces
+    faces_list = list()
 
     # For que itera nas linha do arquivo
     for line in obj_file:
@@ -293,7 +291,6 @@ def load_obj():
                 z_max = float(v_values[2])
             if float(v_values[2]) < z_min:
                 z_min = float(v_values[2])
-
 
         # Caso a linha descreva uma face
         elif line[:2] == 'f ':
@@ -318,23 +315,14 @@ def load_obj():
     # Atribuímos a lista de faces para o array no formato int
     faces = np.asarray(faces_list, dtype='uint32')
 
-    v_max = np.max(vertices)
-    vertices = vertices/v_max
-    x_min = x_min/v_max
-    y_min = y_min/v_max
-    z_min = z_min/v_max
-    x_max = x_max/v_max
-    y_max = y_max/v_max
-    z_max = z_max/v_max
-
     # As coordenadas de centro recebem o ponto médio dos mínimos e máximos do objeto em cada eixo
-    obj_center = [(x_max-x_min)/2, (y_max-y_min)/2, (z_max-z_min)/2]
+    obj_center = [(x_max+x_min)/2, (y_max+y_min)/2, (z_max+z_min)/2]
 
     num_element_vertices = len(faces)
 
-    # print("Vertices:\n", vertices)
-    # print("Faces:\n", faces)
-    # print("Número de vértices", num_element_vertices)
+    print("Vertices:\n", vertices)
+    print("Faces:\n", faces)
+    print("Número de vértices", num_element_vertices)
     print("Coordenadas do centro do objeto", obj_center)
 
 
@@ -344,8 +332,8 @@ def initData():
     global VAO
     global vertices
     global faces
-    global obj_center
     global M
+    global obj_center
     
     # Chama o método que vai ler o arquivo de entrada
     load_obj()
@@ -357,6 +345,16 @@ def initData():
     obj_center[0] -= obj_center[0]
     obj_center[1] -= obj_center[1]
     obj_center[2] -= obj_center[2]
+
+    # Primeira translação para levar o centro do objeto para a origem dos eixos
+    T = ut.matTranslate(-obj_center[0], -obj_center[1], -obj_center[2])
+    M = np.matmul(T,M)
+
+    obj_center[0] -= obj_center[0]
+    obj_center[1] -= obj_center[1]
+    obj_center[2] -= obj_center[2]
+
+    print("Centro na origem:", obj_center)
 
 
     # Vertex array.
