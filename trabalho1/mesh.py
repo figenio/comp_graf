@@ -42,6 +42,7 @@ x_max = sys.float_info.min
 y_max = sys.float_info.min
 z_max = sys.float_info.min
 
+
 ## Variável do programa
 program = None
 ## Vertex Array Object
@@ -81,29 +82,26 @@ def display():
     gl.glClearColor(0.2, 0.3, 0.3, 1.0)
     gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-    gl.glBindVertexArray(VAO)
     gl.glUseProgram(program)
 
-    # Atribuição da matris de transformações
-    print("Matriz de transforamação:\n", M)
+    gl.glBindVertexArray(VAO)
+
+    # Aplicação da matriz de transformações
+    # print("Matriz de transforamação:\n", M)
     loc = gl.glGetUniformLocation(program, "transform")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, M.transpose())
 
-
-    # View
+    # Definição da visão
     # z_near = z_min + (y_max-y_min)/np.tan(fovy)
     z_near = (y_max-y_min)*4.0/np.tan(fovy)
-    print(z_near)
-
-    view = ut.matTranslate(0.0, 0.0, z_near)
-    # view = ut.matTranslate(0.0, 0.0, z_near-1)
-
+    # print(z_near)
+    view = ut.matTranslate(0.0, 0.0, -z_near-1)
     loc = gl.glGetUniformLocation(program, "view")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, view.transpose())
 
-    # Projection
-    # projection = ut.matOrtho(x_min*1.5, x_max*1.5, y_min*1.5, y_max*1.5, 0.1, 500)
-    projection = ut.matPerspective(fovy, win_width/win_height, 0.1, 300)
+    # Aplicação da projeção
+    projection = ut.matPerspective(fovy, win_width/win_height, 0.1, int(z_near*2))
+    #projection = ut.matOrtho(-2, 2, -4, 4, 0.1, 10)
     loc = gl.glGetUniformLocation(program, "projection")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, projection.transpose())
 
@@ -162,24 +160,23 @@ def keyboard(key, x, y):
 
 def handle_operation(key):
     global operation
-    unit = 0.01*max(x_max, y_max, z_max)
 
     if operation == 'translate':
         if key == glut.GLUT_KEY_UP:
-            translate(0.0, unit, 0.0)
+            translate(0.0, 0.05, 0.0)
         elif key == glut.GLUT_KEY_DOWN:
-            translate(0.0, -unit, 0.0)
+            translate(0.0, -0.05, 0.0)
         elif key == glut.GLUT_KEY_RIGHT:
-            translate(unit, 0.0, 0.0)
+            translate(0.05, 0.0, 0.0)
         elif key == glut.GLUT_KEY_LEFT:
-            translate(-unit, 0.0, 0.0)
+            translate(-0.05, 0.0, 0.0)
         elif key == b'a':
-            translate(0.0, 0.0, unit)
+            translate(0.0, 0.0, 0.5)
         elif key == b'd':
-            translate(0.0, 0.0, -unit)
+            translate(0.0, 0.0, -0.5)
 
     elif operation == 'rotate':
-        angle = 1.0
+        angle = 10.0
         if key == glut.GLUT_KEY_UP:
             rotate('x', angle)
         elif key == glut.GLUT_KEY_DOWN:
@@ -194,7 +191,7 @@ def handle_operation(key):
             rotate('z', -angle)
     
     elif operation == 'scale':
-        coeff=0.01
+        coeff=0.05
 
         if key == glut.GLUT_KEY_UP:
             scale(1, 1+coeff, 1)
@@ -221,6 +218,7 @@ def translate(x, y, z):
     obj_center[2] += z
 
 
+
 def scale(x, y, z):
     global M
     x_center, y_center, z_center = obj_center[0], obj_center[1], obj_center[2]
@@ -236,6 +234,7 @@ def rotate(axis, angle=10.0):
     x, y, z = obj_center[0], obj_center[1], obj_center[2]
 
     translate(-x, -y, -z)
+
 
     if axis == 'x':
         R = ut.matRotateX(np.radians(angle))
@@ -337,14 +336,6 @@ def initData():
     
     # Chama o método que vai ler o arquivo de entrada
     load_obj()
-    
-    # Primeira translação para levar o centro do objeto para a origem dos eixos
-    T = ut.matTranslate(-obj_center[0], -obj_center[1], -obj_center[2])
-    M = np.matmul(T,M)
-
-    obj_center[0] -= obj_center[0]
-    obj_center[1] -= obj_center[1]
-    obj_center[2] -= obj_center[2]
 
     # Primeira translação para levar o centro do objeto para a origem dos eixos
     T = ut.matTranslate(-obj_center[0], -obj_center[1], -obj_center[2])
@@ -408,8 +399,5 @@ def main():
     glut.glutMainLoop()
 
 if __name__ == '__main__':
-    obj_name = sys.argv[1]
-    if '.obj' in obj_name:
-        main()
-        # load_obj()
-    else: print("Not a .obj file")
+    main()
+    # load_obj()
