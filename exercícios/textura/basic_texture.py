@@ -7,7 +7,7 @@
 #  1 wireframe;
 #  2 polygon.
 #
-# @author Ricardo Dutra da Silva
+# @author Mateus Raganhan Figênio
 
 
 import sys
@@ -78,8 +78,8 @@ def display():
 
     gl.glUseProgram(program)
     gl.glBindVertexArray(VAO)
-    #gl.glDrawArrays(gl.GL_TRIANGLES, 0, 6)
-    gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, None)
+    gl.glDrawArrays(gl.GL_TRIANGLES, 0, 6)
+    #gl.glDrawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, None)
 
     glut.glutSwapBuffers()
 
@@ -132,13 +132,16 @@ def initData():
     print('opened file: size=', img.size, 'format=', img.format)
     imageData = np.array(list(img.getdata()), np.uint8)
 
-
     # Set vertices.
     vertices = np.array([
         # positions        colors           texture coords
+        # Primeiro triângulo
          0.5,  0.5, 0.0,   1.0, 0.0, 0.0,   1.0, 1.0,   # top right
          0.5, -0.5, 0.0,   0.0, 1.0, 0.0,   1.0, 0.0,   # bottom right
         -0.5, -0.5, 0.0,   0.0, 0.0, 1.0,   0.0, 0.0,   # bottom left
+        # Segundo triãngulo
+        -0.5, -0.5, 0.0,   0.0, 0.0, 1.0,   0.0, 0.0,   # bottom left
+         0.5,  0.5, 0.0,   1.0, 0.0, 0.0,   1.0, 1.0,   # top right
         -0.5,  0.5, 0.0,   1.0, 1.0, 0.0,   0.0, 1.0    # top left 
     ], dtype='float32')
     
@@ -169,7 +172,7 @@ def initData():
     gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 8 * vertices.itemsize, None)
     gl.glEnableVertexAttribArray(0)
     # COLOR
-    gl.glVertexAttribPointer(1, 3, gl.GL_FLOAT, gl.GL_FALSE, 8 * vertices.itemsize, c_void_p(6*vertices.itemsize))
+    gl.glVertexAttribPointer(1, 3, gl.GL_FLOAT, gl.GL_FALSE, 8 * vertices.itemsize, c_void_p(3*vertices.itemsize))
     gl.glEnableVertexAttribArray(1)
     # TEXTURE
     gl.glVertexAttribPointer(2, 2, gl.GL_FLOAT, gl.GL_FALSE, 8 * vertices.itemsize, c_void_p(6*vertices.itemsize))
