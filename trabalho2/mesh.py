@@ -1,5 +1,12 @@
 #!/usr/bin/python
 
+## @file mesh.py
+# Arquivo do trabalho 2 da disciplina de Computação Gráfica,
+# onde é implementada iluminação e textura em objetos de arquivo .obj
+# 
+# @author Mateus Raganhan Figênio
+
+
 import sys
 import ctypes
 import numpy as np
@@ -7,9 +14,9 @@ import OpenGL.GL as gl
 import OpenGL.GLUT as glut
 import utils as ut
 
-sys.path.append('../lib/')
-
 from ctypes import c_void_p
+
+sys.path.append('../lib/')
 
 
 ### --- VARIÁVEIS GLOBAIS --- ###
@@ -54,12 +61,12 @@ VBO = None
 vertex_code = """
 #version 330 core
 layout (location = 0) in vec3 position;
-uniform mat4 transform;
+uniform mat4 model;
 uniform mat4 projection;
 uniform mat4 view;
 void main()
 {
-    gl_Position = projection * view * transform * vec4(position, 1.0);
+    gl_Position = projection * view * model * vec4(position, 1.0);
 }
 """
 
@@ -67,6 +74,7 @@ void main()
 fragment_code = """
 #version 330 core
 out vec4 FragColor;
+
 void main()
 {
     FragColor = vec4(0.7f, 0.7f, 0.7f, 1.0f);
@@ -86,24 +94,28 @@ def display():
 
     gl.glBindVertexArray(VAO)
 
-    # Aplicação da matriz de transformações
+    # Aplicação da matriz de transformações no modelo e passando ele para o Vertex Shader
     # print("Matriz de transforamação:\n", M)
-    loc = gl.glGetUniformLocation(program, "transform")
+    loc = gl.glGetUniformLocation(program, "model")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, M.transpose())
 
+    # Um cálculo para variar o z de translação da view e da distância de fundo
+    # da caixa de projeção, para o tamanho de cada objeto
+    # z = z_min + (y_max-y_min)/np.tan(fovy)
+    z_dist = (y_max-y_min)*4.0/np.tan(fovy)
+    # print(z_dist)
+
     # Definição da visão
-    # z_near = z_min + (y_max-y_min)/np.tan(fovy)
-    z_near = (y_max-y_min)*4.0/np.tan(fovy)
-    # print(z_near)
-    view = ut.matTranslate(0.0, 0.0, -z_near-1)
+    view = ut.matTranslate(0.0, 0.0, -z_dist-1)
     loc = gl.glGetUniformLocation(program, "view")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, view.transpose())
 
     # Aplicação da projeção
-    projection = ut.matPerspective(fovy, win_width/win_height, 0.1, int(z_near*3))
-    #projection = ut.matOrtho(-2, 2, -4, 4, 0.1, 10)
+    projection = ut.matPerspective(fovy, win_width/win_height, 0.1, int(z_dist*3))
     loc = gl.glGetUniformLocation(program, "projection")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, projection.transpose())
+
+
 
     gl.glDrawElements(gl.GL_TRIANGLES, num_element_vertices, gl.GL_UNSIGNED_INT, None)
 
@@ -117,7 +129,6 @@ def display():
 # @param width New window width.
 # @param height New window height.
 def reshape(width,height):
-
     win_width = width
     win_height = height
     gl.glViewport(0, 0, win_width, win_height)
@@ -217,7 +228,6 @@ def translate(x, y, z):
     obj_center[0] += x
     obj_center[1] += y
     obj_center[2] += z
-
 
 
 def scale(x, y, z):
@@ -325,11 +335,15 @@ def load_obj():
     # print("Número de vértices", num_element_vertices)
     # print("Coordenadas do centro do objeto", obj_center)
 
-
-
+## Init vertex data.
+#
+# Defines the coordinates for vertices, creates the arrays for OpenGL.
 def initData():
 
+    # Uses vertex arrays.
     global VAO
+    global VBO
+    # Usa os array de vertices, faces, matriz de transforamção e centro do objeto
     global vertices
     global faces
     global M
@@ -339,9 +353,10 @@ def initData():
     load_obj()
 
     # Primeira translação para levar o centro do objeto para a origem dos eixos
+    # (corrigindo o caso dele ser definido com centro fora da origem)
     T = ut.matTranslate(-obj_center[0], -obj_center[1], -obj_center[2])
     M = np.matmul(T,M)
-
+    # E então corrige a coordenada de centro para o centro após translação
     obj_center[0] -= obj_center[0]
     obj_center[1] -= obj_center[1]
     obj_center[2] -= obj_center[2]
@@ -363,6 +378,9 @@ def initData():
     
     # Set attributes.
     gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, None)
+
+
+    # Unbind Vertex Array Object.
     gl.glEnableVertexAttribArray(0)
 
     gl.glEnable(gl.GL_DEPTH_TEST)
@@ -371,13 +389,16 @@ def initData():
     # Unbind Vertex Array Object.
     gl.glBindVertexArray(0)
 
-
-
+## Create program (shaders).
+#
+# Compile shaders and create programs.
 def initShaders():
     global program
     program = ut.createShaderProgram(vertex_code, fragment_code)
 
-
+## Main function.
+#
+# Init GLUT and the window settings. Also, defines the callback functions used in the program.
 def main():
 
     glut.glutInit()
@@ -385,7 +406,7 @@ def main():
     glut.glutInitContextProfile(glut.GLUT_CORE_PROFILE)
     glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGBA | glut.GLUT_DEPTH)
     glut.glutInitWindowSize(win_width,win_height)
-    glut.glutCreateWindow('Mesh Viwer')
+    glut.glutCreateWindow('Mesh Ilumination and Texture')
 
     initData()
     initShaders()
@@ -399,4 +420,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    # load_obj()

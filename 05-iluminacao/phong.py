@@ -100,15 +100,15 @@ def display():
     Rx = ut.matRotateX(np.radians(10.0))
     Ry = ut.matRotateY(np.radians(-30.0))
     model=np.matmul(Rx,Ry)
-    loc = gl.glGetUniformLocation(program, "model");
+    loc = gl.glGetUniformLocation(program, "model")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, model.transpose())
 
     view = ut.matTranslate(0.0, 0.0, -5.0)
-    loc = gl.glGetUniformLocation(program, "view");
+    loc = gl.glGetUniformLocation(program, "view")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, view.transpose())
     
     projection = ut.matPerspective(np.radians(45.0), win_width/win_height, 0.1, 100.0)
-    loc = gl.glGetUniformLocation(program, "projection");
+    loc = gl.glGetUniformLocation(program, "projection")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, projection.transpose())
 
     # Object color.
@@ -139,7 +139,7 @@ def reshape(width,height):
 
     win_width = width
     win_height = height
-    gl.glViewport(0, 0, width, height)
+    gl.glViewport(0, 0, win_width, win_height)
     glut.glutPostRedisplay()
 
 
@@ -151,9 +151,6 @@ def reshape(width,height):
 # @param x Mouse x coordinate when key pressed.
 # @param y Mouse y coordinate when key pressed.
 def keyboard(key, x, y):
-
-    global type_primitive
-    global mode
 
     if key == b'\x1b'or key == b'q':
         sys.exit( )
@@ -229,7 +226,7 @@ def initData():
     # Unbind Vertex Array Object.
     gl.glBindVertexArray(0)
 
-    gl.glEnable(gl.GL_DEPTH_TEST);
+    gl.glEnable(gl.GL_DEPTH_TEST)
 
 ## Create program (shaders).
 #
@@ -247,8 +244,8 @@ def initShaders():
 def main():
 
     glut.glutInit()
-    glut.glutInitContextVersion(3, 3);
-    glut.glutInitContextProfile(glut.GLUT_CORE_PROFILE);
+    glut.glutInitContextVersion(3, 3)
+    glut.glutInitContextProfile(glut.GLUT_CORE_PROFILE)
     glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGBA | glut.GLUT_DEPTH)
     glut.glutInitWindowSize(win_width,win_height)
     glut.glutCreateWindow('Phong')
