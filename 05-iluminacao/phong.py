@@ -122,7 +122,7 @@ def display():
     gl.glUniform3f(loc, 1.0, 0.0, 2.0)
     # Camera position.
     loc = gl.glGetUniformLocation(program, "cameraPosition")
-    gl.glUniform3f(loc, 0.0, 0.0, 0.0)
+    gl.glUniform3f(loc, -1.0, -2.0, 0.0)
 
     gl.glDrawArrays(gl.GL_TRIANGLES, 0, 12*3)
 
