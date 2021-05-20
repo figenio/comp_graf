@@ -173,13 +173,15 @@ def display():
 
     # Object color.
     loc = gl.glGetUniformLocation(program, "objectColor")
-    gl.glUniform3f(loc, 0.7, 0.7, 0.7)
+    if uso_textura: gl.glUniform3f(loc, 1.0, 1.0, 1.0)
+    else: gl.glUniform3f(loc, 0.8, 0.0, 0.0)
     # Light color.
     loc = gl.glGetUniformLocation(program, "lightColor")
     gl.glUniform3f(loc, 1.0, 1.0, 1.0)
     # Light position.
     loc = gl.glGetUniformLocation(program, "lightPosition")
-    gl.glUniform3f(loc, 1.0, 0.0, 2.0)
+    gl.glUniform3f(loc, 2*float(x_max), float(y_max), float(z_dist))
+    # gl.glUniform3f(loc, 1.0, 0.0, 2.0)
     # Camera position.
     loc = gl.glGetUniformLocation(program, "cameraPosition")
     gl.glUniform3f(loc, 0.0, 0.0, 0.0)
@@ -227,9 +229,11 @@ def keyboard(key, x, y):
     if key == b'1':
         uso_textura = False
         print('Textura desabilitada')
+        glut.glutPostRedisplay()
     elif key == b'2':
         uso_textura = True
         print('Textura habilitada')
+        glut.glutPostRedisplay()
     # Seleção de operação
     elif key == b't':
         operation = 'translate'
@@ -265,9 +269,9 @@ def handle_operation(key):
         elif key == glut.GLUT_KEY_LEFT:
             translate(-unit, 0.0, 0.0)
         elif key == b'a':
-            translate(0.0, 0.0, 0.5)
+            translate(0.0, 0.0, 10*unit)
         elif key == b'd':
-            translate(0.0, 0.0, -0.5)
+            translate(0.0, 0.0, -10*unit)
 
     elif operation == 'rotate':
         angle = 10.0
