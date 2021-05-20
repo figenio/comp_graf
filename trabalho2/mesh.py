@@ -14,6 +14,7 @@ import OpenGL.GL as gl
 import OpenGL.GLUT as glut
 import utils as ut
 
+from PIL import Image
 from ctypes import c_void_p
 
 sys.path.append('../lib/')
@@ -35,6 +36,8 @@ vertex_array = np.array([], dtype='float32')
 vertex_number = None
 ## Se o obj carregado tem ou não normal
 normal = False
+## Flag de se o programa vai aplicar ou não a textura
+uso_textura = False
 
 ## Matriz de transformações iniciada como matriz identidade
 M = np.identity(4, dtype='float32')
@@ -57,6 +60,8 @@ program = None
 VAO = None
 ## Vertex Buffer Object
 VBO = None
+## Vertex Texture Object
+VTO = None
 
 ## Vertex shader.
 vertex_code = """
@@ -73,6 +78,7 @@ uniform vec3 lightPosition;
 out vec3 vNormal;
 out vec3 fragPosition;
 out vec3 LightPos;
+out vec3 TexCoords;
 
 void main()
 {
@@ -80,6 +86,7 @@ void main()
     fragPosition = vec3(view * model * vec4(position, 1.0));
     vNormal = mat3(inverse) * normal;
     LightPos = vec3(view * vec4(lightPosition, 1.0));
+    TexCoords = position;
 }
 """
 
@@ -89,12 +96,15 @@ fragment_code = """
 in vec3 vNormal;
 in vec3 fragPosition;
 in vec3 LightPos;
+in vec3 TexCoords;
 
 out vec4 fragColor;
 
 uniform vec3 objectColor;
 uniform vec3 lightColor;
 uniform vec3 cameraPosition;
+uniform samplerCube cubemap;
+uniform bool texture_flag;
 
 void main()
 {
@@ -115,8 +125,11 @@ void main()
     float spec = pow(max(dot(v, r), 0.0), 3.0);
     vec3 specular = ks * spec * lightColor;
 
-    vec3 light = (ambient + diffuse + specular) * objectColor;
+    vec3 light = (ambient + diffuse + specular) * objectColor;  
     fragColor = vec4(light, 1.0);
+    if (texture_flag) {
+        fragColor = texture(cubemap, TexCoords) * fragColor;
+    }
 }
 """
 
@@ -160,7 +173,7 @@ def display():
 
     # Object color.
     loc = gl.glGetUniformLocation(program, "objectColor")
-    gl.glUniform3f(loc, 0.8, 0.0, 0.0)
+    gl.glUniform3f(loc, 0.7, 0.7, 0.7)
     # Light color.
     loc = gl.glGetUniformLocation(program, "lightColor")
     gl.glUniform3f(loc, 1.0, 1.0, 1.0)
@@ -170,6 +183,13 @@ def display():
     # Camera position.
     loc = gl.glGetUniformLocation(program, "cameraPosition")
     gl.glUniform3f(loc, 0.0, 0.0, 0.0)
+
+    # Binds Texture 
+    gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, VTO)
+
+    # Set texture use
+    loc = gl.glGetUniformLocation(program, "texture_flag")
+    gl.glUniform1f(loc, uso_textura)
 
 
     gl.glDrawArrays(gl.GL_TRIANGLES, 0, vertex_number)
@@ -202,10 +222,16 @@ def special_keyboard(key, x, y):
 # @param y Mouse y coordinate when key pressed.
 def keyboard(key, x, y):
     
-    global mode, operation
-    
+    global mode, operation, uso_textura
+
+    if key == b'1':
+        uso_textura = False
+        print('Textura desabilitada')
+    elif key == b'2':
+        uso_textura = True
+        print('Textura habilitada')
     # Seleção de operação
-    if key == b't':
+    elif key == b't':
         operation = 'translate'
         print('translate')
     elif key == b'r':
@@ -314,7 +340,7 @@ def rotate(axis, angle=10.0):
 
     translate(x, y, z)
 
-
+# Método que carrega o objeto definido no arquivo obj para o vertex array
 def load_obj():
     obj_name = sys.argv[1]
     obj_file = open(obj_name)
@@ -407,6 +433,7 @@ def initData():
     # Uses vertex arrays.
     global VAO
     global VBO
+    global VTO
 
     # Usa os array de vertices, faces, matriz de transforamção e centro do objeto
     global vertex_array
@@ -414,8 +441,12 @@ def initData():
     global obj_center
     global normal
     
-    # Chama o método que vai ler o arquivo de entrada
+    # Chama o método que vai ler o arquivo .obj
     load_obj()
+    # Abre a imagem que será usada como textura
+    img = Image.open(sys.argv[2])
+    print('opened file: size=', img.size, 'format=', img.format)
+    imageData = np.array(list(img.getdata()), np.uint8)
 
     # Primeira translação para levar o centro do objeto para a origem dos eixos
     # (corrigindo o caso dele ser definido com centro fora da origem)
@@ -434,6 +465,19 @@ def initData():
     VBO = gl.glGenBuffers(1)
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, VBO)
     gl.glBufferData(gl.GL_ARRAY_BUFFER, vertex_array.nbytes, vertex_array, gl.GL_STATIC_DRAW)
+    
+    # Texture data
+    VTO = gl.glGenTextures(1)
+    gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, VTO)
+
+    for i in range(6):
+      gl.glTexImage2D(gl.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.GL_RGB, img.size[0], img.size[1], 0, gl.GL_RGB, gl.GL_UNSIGNED_BYTE, imageData)
+
+    gl.glTexParameteri(gl.GL_TEXTURE_CUBE_MAP, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_CUBE_MAP, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR)
+    gl.glTexParameteri(gl.GL_TEXTURE_CUBE_MAP, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE)
+    gl.glTexParameteri(gl.GL_TEXTURE_CUBE_MAP, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE)
+    gl.glTexParameteri(gl.GL_TEXTURE_CUBE_MAP, gl.GL_TEXTURE_WRAP_R, gl.GL_CLAMP_TO_EDGE)  
     
     # Set attributes
     if normal == True:
@@ -474,7 +518,7 @@ def main():
     glut.glutInitContextProfile(glut.GLUT_CORE_PROFILE)
     glut.glutInitDisplayMode(glut.GLUT_DOUBLE | glut.GLUT_RGBA | glut.GLUT_DEPTH)
     glut.glutInitWindowSize(win_width,win_height)
-    glut.glutCreateWindow('Mesh Ilumination and Texture')
+    glut.glutCreateWindow('Mesh I&T')
 
     initData()
     initShaders()
