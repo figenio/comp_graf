@@ -154,7 +154,9 @@ def display():
 
     # Adjust Normals
     loc = gl.glGetUniformLocation(program, "inverse")
-    gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, np.linalg.inv(view*M).transpose())
+    gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, M.transpose())
+    # gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, np.matmul(view,M).transpose())
+    # gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, np.linalg.inv(view*M).transpose())
 
     # Object color.
     loc = gl.glGetUniformLocation(program, "objectColor")
@@ -360,7 +362,7 @@ def load_obj():
                 z_min = float(v_values[2])
 
         # Caso a linha descreva a normal de um vértice
-        if line[:2] == "vn":
+        elif line[:2] == "vn":
             n_values = line[2:].split()
             normais.append(n_values)
 
@@ -371,6 +373,7 @@ def load_obj():
 
             for v in f_values:
                 if '/' in v: # Caso hajam mais valores do que apenas o índice da coordenada
+                    normal = True
                     v_index  = v.split('/')[0] # Separamos o valor da coordenada
                     # v_color  = v.split('/')[1]
                     v_normal = v.split('/')[2]
@@ -382,22 +385,19 @@ def load_obj():
                         faces['n'].append(int(v_normal)-1)
                 else: faces['v'].append(int(v)-1)
 
-
-    if len(normais) > 0:
-        normal = True
+    if normal == True:
         for v, n in zip(faces['v'], faces['n']):
             output_vertices.append(vertices[v])
             output_vertices.append(normais[n])
     else:
         for v in faces['v']:
             output_vertices.append(vertices[v])
-        
+    
 
     # As coordenadas de centro recebem o ponto médio dos mínimos e máximos do objeto em cada eixo
     obj_center = [(x_max+x_min)/2, (y_max+y_min)/2, (z_max+z_min)/2]
     vertex_number = len(output_vertices)
     vertex_array = np.asarray(output_vertices, dtype='float32').flatten()
-    print(vertex_array)
 
 ## Init vertex data.
 #
@@ -436,7 +436,7 @@ def initData():
     gl.glBufferData(gl.GL_ARRAY_BUFFER, vertex_array.nbytes, vertex_array, gl.GL_STATIC_DRAW)
     
     # Set attributes
-    if normal:
+    if normal == True:
         # Posição
         gl.glEnableVertexAttribArray(0)
         gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 6*vertex_array.itemsize, None)
