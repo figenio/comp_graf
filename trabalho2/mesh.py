@@ -145,15 +145,12 @@ def display():
     gl.glBindVertexArray(VAO)
 
     # Aplicação da matriz de transformações no modelo e passando ele para o Vertex Shader
-    # print("Matriz de transforamação:\n", M)
     loc = gl.glGetUniformLocation(program, "model")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, M.transpose())
 
     # Um cálculo para variar o z de translação da view e da distância de fundo
     # da caixa de projeção, para o tamanho de cada objeto
-    # z = z_min + (y_max-y_min)/np.tan(fovy)
-    z_dist = (y_max-y_min)*6.0/np.tan(fovy)
-    # print(z_dist)
+    z_dist = (y_max-y_min)*4.0/np.tan(fovy)
 
     # Definição da visão
     view = ut.matTranslate(0.0, 0.0, -z_dist)
@@ -168,10 +165,8 @@ def display():
     # Adjust Normals
     loc = gl.glGetUniformLocation(program, "inverse")
     gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, M.transpose())
-    # gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, np.matmul(view,M).transpose())
-    # gl.glUniformMatrix4fv(loc, 1, gl.GL_FALSE, np.linalg.inv(view*M).transpose())
 
-    # Object color.
+    # Object color. (com cor diferente caso não seja ativada a textura)
     loc = gl.glGetUniformLocation(program, "objectColor")
     if uso_textura: gl.glUniform3f(loc, 1.0, 1.0, 1.0)
     else: gl.glUniform3f(loc, 0.8, 0.0, 0.0)
@@ -180,8 +175,7 @@ def display():
     gl.glUniform3f(loc, 1.0, 1.0, 1.0)
     # Light position.
     loc = gl.glGetUniformLocation(program, "lightPosition")
-    gl.glUniform3f(loc, 2*float(x_max), float(y_max), float(z_dist))
-    # gl.glUniform3f(loc, 1.0, 0.0, 2.0)
+    gl.glUniform3f(loc, 2*float(x_max), float(y_max), float(z_dist)) # gl.glUniform3f(loc, 1.0, 0.0, 2.0)
     # Camera position.
     loc = gl.glGetUniformLocation(program, "cameraPosition")
     gl.glUniform3f(loc, 0.0, 0.0, 0.0)
@@ -192,7 +186,6 @@ def display():
     # Set texture use
     loc = gl.glGetUniformLocation(program, "texture_flag")
     gl.glUniform1f(loc, uso_textura)
-
 
     gl.glDrawArrays(gl.GL_TRIANGLES, 0, vertex_number)
     gl.glBindVertexArray(0)
@@ -212,6 +205,7 @@ def reshape(width,height):
     gl.glViewport(0, 0, win_width, win_height)
     glut.glutPostRedisplay()
 
+# Method that interprets special keyboard inputs (like arrows)
 def special_keyboard(key, x, y):
     handle_operation(key)
 
@@ -226,6 +220,7 @@ def keyboard(key, x, y):
     
     global mode, operation, uso_textura
 
+    # Configuração de textura
     if key == b'1':
         uso_textura = False
         print('Textura desabilitada')
@@ -350,18 +345,10 @@ def load_obj():
     obj_file = open(obj_name)
     print("Input argument:", obj_name)
     
-    global vertex_array
-    global vertex_number
-    global normal
-    global M
-    global obj_center
-    # Limites do objeto
-    global x_min
-    global y_min
-    global z_min
-    global x_max
-    global y_max
-    global z_max
+    # Chamada dos arrays e valores a serem setados pelo objeto
+    global vertex_array, vertex_number, normal, M, obj_center
+    # Coordenadas limite do objeto
+    global x_min, y_min, z_min, x_max, y_max, z_max
 
     vertices = list()
     normais = list()
@@ -423,7 +410,6 @@ def load_obj():
         for v in faces['v']:
             output_vertices.append(vertices[v])
     
-
     # As coordenadas de centro recebem o ponto médio dos mínimos e máximos do objeto em cada eixo
     obj_center = [(x_max+x_min)/2, (y_max+y_min)/2, (z_max+z_min)/2]
     vertex_number = len(output_vertices)
@@ -435,15 +421,10 @@ def load_obj():
 def initData():
 
     # Uses vertex arrays.
-    global VAO
-    global VBO
-    global VTO
+    global VAO, VBO, VTO
 
     # Usa os array de vertices, faces, matriz de transforamção e centro do objeto
-    global vertex_array
-    global M
-    global obj_center
-    global normal
+    global vertex_array, normal, M, obj_center
     
     # Chama o método que vai ler o arquivo .obj
     load_obj()
@@ -474,6 +455,7 @@ def initData():
     VTO = gl.glGenTextures(1)
     gl.glBindTexture(gl.GL_TEXTURE_CUBE_MAP, VTO)
 
+    # Texture settings
     for i in range(6):
       gl.glTexImage2D(gl.GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, gl.GL_RGB, img.size[0], img.size[1], 0, gl.GL_RGB, gl.GL_UNSIGNED_BYTE, imageData)
 
